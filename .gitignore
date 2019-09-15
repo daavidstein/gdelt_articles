@@ -137,7 +137,8 @@ build
 
 __pycache__/
 *.py[cod]
-
+.Rhistory
+.ipynb_checkpoints/
 
 ###################################
 # official gitignore repo:
