@@ -116,6 +116,7 @@ dups # dates vary, likely some of the content does too looking at above for arti
 
 # Visualizations
 ```{r Articles over time}
+# Looking at the articles published over time from 2012 to 2018
 ggplot(dates, aes(x=date)) +
     geom_freqpoly(bins=100, size=1.5, alpha = I(.6), color="purple4") +
     scale_x_date(limits = as.Date(c("2012-01-01","2018-01-01")), breaks = function(x) seq.Date(from = as.Date(c("2011-01-01")), to = as.Date(c("2018-01-01")), by = "6 months")) +
@@ -130,6 +131,7 @@ Palette <- colorRampPalette(brewer.pal(9, "Set1"))
 dates <- within(dates, 
                 publication <- factor(publication, levels=names(sort(table(publication), decreasing=TRUE))))
 
+# Percent of articles from each publisher
 ggplot(dates, aes(x=factor(publication))) +
     geom_bar(aes(y = (..count..)/sum(..count..)), stat="count", fill=Palette(15)) +
     labs(title="Popular Publications", x="Publication", y = "Percent of Total Articles") +
@@ -138,12 +140,13 @@ ggplot(dates, aes(x=factor(publication))) +
 ```
 
 ```{r Articles over time by publication}
+# Number of articles published by publisher over time
 ggplot(dates, aes(x=date, color=publication)) +
     geom_freqpoly(bins=100, size=1.2, alpha = I(.5)) +
     scale_x_date(limits = as.Date(c("2012-01-01","2018-01-01")), breaks = function(x) seq.Date(from = as.Date(c("2011-01-01")), to = as.Date(c("2018-01-01")), by = "1 year")) +
     scale_y_continuous(breaks = pretty_breaks(3)) + 
     scale_color_manual(values = Palette(15)) + 
-    facet_wrap( ~ publication, ncol=3, scales = "free_y", shrink = T) +
+    facet_wrap( ~ publication, ncol=3, scales = "free_y", shrink = T) + #y-axis varies by publisher
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 ```{r}
@@ -152,5 +155,10 @@ articles3[articles3$publication=="Vox",]
 ```
 
 ```{r}
-wordcloud(dates$title, max.words = 100, random.order = FALSE, colors = brewer.pal(8, "Dark2"))
+# Make all words lowercase and remove certain words like "the"
+titles <- tolower(dates$title) %>% removeWords(stopwords("en"))
+# Remove possessive "'s" 
+titles <- gsub("â€™s", " ", titles)
+# Create wordcloud
+wordcloud(titles, max.words = 100, random.order = FALSE, colors = brewer.pal(8, "Dark2"))
 ```
