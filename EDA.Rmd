@@ -1,0 +1,156 @@
+---
+title: "EDA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(scales)
+library(RColorBrewer)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(RCurl)
+library(XML)
+# GDELT <- read.csv("GDELT_events.csv")
+# articles1 <- read.csv("C:\\Users\\Sonia\\Desktop\\Grad School\\Fall 2019\\Practical Data Science\\all-the-news\\articles1.csv")
+# articles2 <- read.csv("C:\\Users\\Sonia\\Desktop\\Grad School\\Fall 2019\\Practical Data Science\\all-the-news\\articles2.csv")
+# articles3 <- read.csv("C:\\Users\\Sonia\\Desktop\\Grad School\\Fall 2019\\Practical Data Science\\all-the-news\\articles3.csv")
+```
+
+```{r Cleaning the data, include=FALSE}
+# Convert from factor to date time format
+GDELT$occurred <- as.POSIXct(GDELT$occurred, format = "%Y-%m-%d %H:%M:%S")
+GDELT$created_at <- as.POSIXct(GDELT$created_at, format = "%Y-%m-%d %H:%M:%S")
+GDELT$modified_at <- as.POSIXct(GDELT$modified_at, format = "%Y-%m-%d %H:%M:%S")
+articles1$date <- as.Date(articles1$date)
+articles2$date <- as.Date(articles2$date)
+articles3$date <- as.Date(articles3$date)
+```
+
+# Overview of Data
+```{r}
+colnames(GDELT)
+head(GDELT)
+summary(GDELT)
+
+# Foreign sources (no '.com', '.org')
+nrow(GDELT[!grepl(".com", GDELT$source),])
+foreign <- GDELT[!grepl(".com|.org", GDELT$source),]
+head(foreign$source, 10)
+```
+```{r}
+# Checking whether action contains the information from the actor columns (code, name, location)
+select(GDELT, actor1, actor2, action) %>% head(10)
+total <- 0
+for (row in GDELT) {
+    ifelse (
+        ((str_extract(GDELT$actor1[row], "'lat': .{7}") == str_extract(GDELT$action[row], "'lat': .{7}")) &
+        (str_extract(GDELT$actor1[row], "'lon': .{7}") == str_extract(GDELT$action[row], "'lon': .{7}"))) |
+        ((str_extract(GDELT$actor2[row], "'lat': .{7}") == str_extract(GDELT$action[row], "'lat': .{7}")) &
+        (str_extract(GDELT$actor2[row], "'lon': .{7}") == str_extract(GDELT$action[row], "'lon': .{7}"))),
+        total <- total, 
+        total <- total+1
+        )
+}
+# Number of rows where actors location does not match action location
+total
+# Example
+GDELT[181089,5:7]
+```
+
+```{r}
+colnames(articles1)
+head(articles1)
+summary(articles1)
+```
+
+```{r}
+colnames(articles2)
+head(articles2)
+summary(articles2)
+```
+
+```{r}
+colnames(articles3)
+head(articles3)
+summary(articles3)
+```
+
+```{r}
+# Looking at the data in articles3 where title is "Premier League: 10 things to look out for this weekend"
+articles3[grepl("Premier League: 10 things to look out for this weekend", articles3$title),]
+# articles are different despit having same title
+
+dups <- articles3[duplicated(articles3$title) | duplicated(articles3$title, fromLast = T),] 
+dups[order(dups$title),] # some content is the same, some different
+```
+
+```{r}
+# Creating new dataframe combining articles dataframes with columns of interest
+dates1 <- articles1$date %>% as.data.frame()
+dates1$publication <- articles1$publication
+dates1$title <- articles1$title
+dates1$from <- "articles1"
+dates2 <- articles2$date %>% as.data.frame()
+dates2$publication <- articles2$publication
+dates2$title <- articles2$title
+dates2$from <- "articles2"
+dates3 <- articles3$date %>% as.data.frame()
+dates3$publication <- articles3$publication
+dates3$title <- articles3$title
+dates3$from <- "articles3"
+dates <- rbind(dates1, dates2, dates3)
+colnames(dates)[1] <- "date"
+# Set 'date' column to date format
+dates$date <- as.Date(dates$date)
+```
+
+```{r}
+# All duplicated titles
+dups <- dates[duplicated(dates$title) | duplicated(dates$title, fromLast = T),] 
+dups <- dups[order(dups$title),] # sort by title for easier comparison
+dups # dates vary, likely some of the content does too looking at above for articles3
+```
+
+# Visualizations
+```{r Articles over time}
+ggplot(dates, aes(x=date)) +
+    geom_freqpoly(bins=100, size=1.5, alpha = I(.6), color="purple4") +
+    scale_x_date(limits = as.Date(c("2012-01-01","2018-01-01")), breaks = function(x) seq.Date(from = as.Date(c("2011-01-01")), to = as.Date(c("2018-01-01")), by = "6 months")) +
+    scale_y_continuous(breaks = pretty_breaks(10)) + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r Popular Publications}
+# Increase colors in palette
+Palette <- colorRampPalette(brewer.pal(9, "Set1"))
+# Order data for plot
+dates <- within(dates, 
+                publication <- factor(publication, levels=names(sort(table(publication), decreasing=TRUE))))
+
+ggplot(dates, aes(x=factor(publication))) +
+    geom_bar(aes(y = (..count..)/sum(..count..)), stat="count", fill=Palette(15)) +
+    labs(title="Popular Publications", x="Publication", y = "Percent of Total Articles") +
+    scale_y_continuous(breaks = pretty_breaks(10), expand = c(0,0), labels = percent) + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r Articles over time by publication}
+ggplot(dates, aes(x=date, color=publication)) +
+    geom_freqpoly(bins=100, size=1.2, alpha = I(.5)) +
+    scale_x_date(limits = as.Date(c("2012-01-01","2018-01-01")), breaks = function(x) seq.Date(from = as.Date(c("2011-01-01")), to = as.Date(c("2018-01-01")), by = "1 year")) +
+    scale_y_continuous(breaks = pretty_breaks(3)) + 
+    scale_color_manual(values = Palette(15)) + 
+    facet_wrap( ~ publication, ncol=3, scales = "free_y", shrink = T) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+```{r}
+articles3[articles3$publication=="Vox",]
+# Vox not showing due to issues with date formats, will fix later
+```
+
+```{r}
+wordcloud(dates$title, max.words = 100, random.order = FALSE, colors = brewer.pal(8, "Dark2"))
+```
