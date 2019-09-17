@@ -16,7 +16,7 @@ def get_content(row):
     try: #handle HTTP request errors
         page.raise_for_status()
         tree = html.fromstring(page.content)
-        paras_anchors = tree.xpath('//p/a/text()|//p/text()')
+        paras_anchors = tree.xpath('/html/head/title/text()|//p/a/text()|//p/text()')
 
         row.loc['content'] = content_clean(paras_anchors)
         return row
