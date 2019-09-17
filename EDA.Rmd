@@ -26,6 +26,8 @@ GDELT$created_at <- as.POSIXct(GDELT$created_at, format = "%Y-%m-%d %H:%M:%S")
 GDELT$modified_at <- as.POSIXct(GDELT$modified_at, format = "%Y-%m-%d %H:%M:%S")
 articles1$date <- as.Date(articles1$date)
 articles2$date <- as.Date(articles2$date)
+# Convert all dates to same date format for articles3
+articles3$date <- gsub("/", "-", articles3$date) #Vox articles dated YYYY/MM/DD instead of YYYY-MM-DD
 articles3$date <- as.Date(articles3$date)
 ```
 
@@ -76,6 +78,7 @@ summary(articles2)
 colnames(articles3)
 head(articles3)
 summary(articles3)
+# 15 articles from The Guardian didn't have dates
 ```
 
 ```{r}
@@ -148,10 +151,6 @@ ggplot(dates, aes(x=date, color=publication)) +
     scale_color_manual(values = Palette(15)) + 
     facet_wrap( ~ publication, ncol=3, scales = "free_y", shrink = T) + #y-axis varies by publisher
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-```{r}
-articles3[articles3$publication=="Vox",]
-# Vox not showing due to issues with date formats, will fix later
 ```
 
 ```{r}
