@@ -6,6 +6,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(GDELTtools)
 library(scales)
 library(RColorBrewer)
 library(tm)
@@ -13,6 +14,8 @@ library(SnowballC)
 library(wordcloud)
 library(RCurl)
 library(XML)
+library(maps)
+library(plotly)
 # GDELT <- read.csv("GDELT_events.csv")
 # articles1 <- read.csv("C:\\Users\\Sonia\\Desktop\\Grad School\\Fall 2019\\Practical Data Science\\all-the-news\\articles1.csv")
 # articles2 <- read.csv("C:\\Users\\Sonia\\Desktop\\Grad School\\Fall 2019\\Practical Data Science\\all-the-news\\articles2.csv")
@@ -180,13 +183,44 @@ ggplot(GDELT, aes(x=created_at)) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 ```
 ```{r}
-# attemting to look at countries for actors and actions
+events.map$area <- as.factor(events.map$area)
+actor1$country <- as.factor(actor1$country)
+# Attemting to look at countries for actors and actions
+country <- as.data.frame(matrix("GDELT", nrow=500000))
 country$actor1 <- str_match(GDELT$actor1, ", 'country': '(.*?)'")[,2]
 country$actor2 <- str_match(GDELT$actor2, ", 'country': '(.*?)'")[,2]
 country$action <- str_match(GDELT$action, ", 'country': '(.*?)'")[,2]
 
-# for some  reason the code above does not work, but the code below does
-h <- head(GDELT$actor1, 50)
-str_match(h, ", 'country': '(.*?)'")[,2]
+# Aggregate to calculate counts for each country
+actor1 <- country %>% 
+  select(actor1) %>%  
+  aggregate(by=list(code=country$actor1), FUN=function(x){log(NROW(x))}) #convert to log scale here because US has 150,000+ while other countries have less than 22,000
+
+# Convert 2 character country code to 3 character code and actual country name
+actor1$code <- countrycode::countrycode(actor1$code, 'iso2c', 'iso3c')
+actor1$country <- countrycode::countrycode(actor1$code, 'iso3c', 'country.name')
+```
+
+```{r}
+# Use choropleth map to look at countries with events
+l <- list(color = toRGB("grey4"), width = 0.5) #set country borders to a dark grey
+
+# specify map projection/options
+g <- list(
+  showframe = FALSE, #removes frame around map
+  showcoastlines = FALSE, #removes  outline around coasts
+  projection = list(type = 'Mercator') #sets projection ('Mercator' for flat map, 'orthographic' for globe, etc.)
+)
+
+plot_geo(actor1) %>%
+  add_trace(
+    z = ~actor1, #counts
+    color = ~actor1,  #counts for coloring
+    colors = "Reds", #color scheme
+    text = ~country, #display country name for text
+    locations = ~code, #3 letter country code
+    marker = list(line = l) #set line color between countries
+  )%>%
+  layout(geo = g) #removes coastlines and frame around map
 ```
 
