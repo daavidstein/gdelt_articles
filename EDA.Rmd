@@ -224,3 +224,38 @@ plot_geo(actor1) %>%
   layout(geo = g) #removes coastlines and frame around map
 ```
 
+```{r}
+# Use GDELT package to gather data
+test <- GetGDELT(start.date="2010-01-01", end.date="2010-1-31")
+
+test1 <- test %>% 
+  select(ActionGeo_CountryCode) %>%  
+  aggregate(by=list(code=test$ActionGeo_CountryCode), FUN=function(x){log(NROW(x))}) #convert to log scale here because US has significantly more than other countries
+
+# Convert 2 character country code to 3 character code and actual country name
+test1$code <- countrycode::countrycode(test1$code, 'iso2c', 'iso3c')
+test1$country <- countrycode::countrycode(test1$code, 'iso3c', 'country.name')
+```
+
+```{r}
+# Use choropleth map to look at countries with events
+l <- list(color = toRGB("grey4"), width = 0.5) #set country borders to a dark grey
+
+# specify map projection/options
+g <- list(
+  showframe = FALSE, #removes frame around map
+  showcoastlines = FALSE, #removes  outline around coasts
+  projection = list(type = 'Mercator') #sets projection ('Mercator' for flat map, 'orthographic' for globe, etc.)
+)
+
+plot_geo(test1) %>%
+  add_trace(
+    z = ~ActionGeo_CountryCode, #counts
+    color = ~ActionGeo_CountryCode,  #counts for coloring
+    colors = "Reds", #color scheme
+    text = ~country, #display country name for text
+    locations = ~code, #3 letter country code
+    marker = list(line = l) #set line color between countries
+  )%>%
+  layout(geo = g) #removes coastlines and frame around map
+```
