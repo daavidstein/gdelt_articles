@@ -23,6 +23,15 @@ def clean(page):
         except:
             return "NA"
         return content
+def content_clean(content):
+
+
+    '''remove unicode characters'''
+
+    joined = " ".join(content)
+    content_ascii = re.sub(r'[^\x00-\x7f]',r'', joined).replace('\r', '').replace('\n', '').replace('\t', '')
+
+    return content_ascii
 
 
 def handler(request, exception):
