@@ -9,7 +9,7 @@ Project for Practical Data Science involving the GDELT dataset
 │   ├── ml
 │   │   └── models.ipynb
 │   ├── scraping
-│   │   └── asynch_scrape.py
+│   │   └── asynch_scrape.py #retrieves articles corresponding to SOURCEURL in GDELT events using asynchronous HTTP requests
 │   └── shiny # this shiny app allows users to look at article sentiments and locations for the entire or filtered subset of the sample data.    
 │       ├── server.R
 │       └── ui.R
