@@ -2,7 +2,7 @@
 Project for Practical Data Science involving the GDELT dataset
  
  
-
+<pre>
 .
 ├── README.md
 ├── final_product
@@ -41,3 +41,4 @@ Project for Practical Data Science involving the GDELT dataset
         └── scraping_example.ipynb
 
 9 directories, 26 files
+</pre>
